@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/finance-tracker';
+// Use the MongoDB Atlas connection string
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/myDatabaseFinance';
 
 if (!MONGODB_URI) {
   throw new Error(
@@ -27,9 +28,13 @@ export async function connectToDatabase() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      // Adding these options to avoid connection issues
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      console.log('Connected to MongoDB successfully');
       return mongoose;
     });
   }
@@ -37,6 +42,7 @@ export async function connectToDatabase() {
   try {
     cached.conn = await cached.promise;
   } catch (e) {
+    console.error('MongoDB connection error:', e);
     cached.promise = null;
     throw e;
   }

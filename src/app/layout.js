@@ -1,5 +1,4 @@
 import './globals.css'
-import { AuthProvider } from '../contexts/AuthContext';
 
 export const metadata = {
   title: 'Personal Finance Tracker',
@@ -18,10 +17,8 @@ export default function RootLayout({ children }) {
           referrerPolicy="no-referrer" 
         />
       </head>
-      <body className="bg-gray-900 text-white">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+      <body className="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white">
+        {children}
       </body>
     </html>
   )

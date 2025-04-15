@@ -8,6 +8,10 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "keywords": [
     "finance",
     "personal",
@@ -17,10 +21,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bcryptjs": "^2.4.3",
     "gsap": "^3.12.2",
-    "jsonwebtoken": "^9.0.2",
     "mongodb": "^5.8.1",
+    "mongoose": "^7.5.3",
     "next": "14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

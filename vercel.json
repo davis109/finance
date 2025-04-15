@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "env": {
+    "MONGODB_URI": "mongodb+srv://sebastiandavis109:REPLACE_WITH_YOUR_PASSWORD@cluster0.aemy1.mongodb.net/myDatabaseFinance?retryWrites=true&w=majority&appName=Cluster0"
+  },
+  "regions": ["cdg1"]
+} 
