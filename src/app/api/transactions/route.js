@@ -1,78 +1,92 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '../../../lib/mongodb';
-import mongoose from 'mongoose';
-import Transaction from '../../../lib/models/Transaction';
-
-// Force dynamic rendering - this prevents static generation errors
-export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
-    await connectToDatabase();
-    
+    // Mock data for demonstration
+    const transactions = [
+      {
+        _id: '1',
+        title: 'Salary',
+        amount: 3000,
+        type: 'income',
+        category: 'Salary',
+        date: new Date('2025-04-01'),
+        description: 'Monthly salary payment'
+      },
+      {
+        _id: '2',
+        title: 'Rent',
+        amount: 1200,
+        type: 'expense',
+        category: 'Housing',
+        date: new Date('2025-04-05'),
+        description: 'Monthly rent payment'
+      },
+      {
+        _id: '3',
+        title: 'Groceries',
+        amount: 150,
+        type: 'expense',
+        category: 'Food',
+        date: new Date('2025-04-10'),
+        description: 'Weekly grocery shopping'
+      },
+      {
+        _id: '4',
+        title: 'Freelance Work',
+        amount: 500,
+        type: 'income',
+        category: 'Freelance',
+        date: new Date('2025-04-15'),
+        description: 'Website development project'
+      }
+    ];
+
+    // Extract query parameters
     const { searchParams } = new URL(request.url);
-    
-    // Get query parameters for filtering
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 10;
-    const skip = (page - 1) * limit;
-    
-    const category = searchParams.get('category');
     const type = searchParams.get('type');
+    const category = searchParams.get('category');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
-    const month = searchParams.get('month');
-    const year = searchParams.get('year');
-    
-    // Build filter query
-    const filter = {};
-    
-    if (category) {
-      filter.category = category;
-    }
+
+    // Filter transactions
+    let filteredTransactions = [...transactions];
     
     if (type) {
-      filter.type = type;
+      filteredTransactions = filteredTransactions.filter(t => t.type === type);
     }
     
-    // Handle date filtering
-    if (startDate || endDate) {
-      filter.date = {};
-      
-      if (startDate) {
-        filter.date.$gte = new Date(startDate);
-      }
-      
-      if (endDate) {
-        filter.date.$lte = new Date(endDate);
-      }
-    } else if (month && year) {
-      // Filter by specific month and year
-      const startOfMonth = new Date(parseInt(year), parseInt(month) - 1, 1);
-      const endOfMonth = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
-      
-      filter.date = {
-        $gte: startOfMonth,
-        $lte: endOfMonth
-      };
+    if (category) {
+      filteredTransactions = filteredTransactions.filter(t => t.category === category);
     }
     
-    // Fetch transactions with pagination
-    const transactions = await Transaction.find(filter)
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(limit);
+    if (startDate) {
+      const start = new Date(startDate);
+      filteredTransactions = filteredTransactions.filter(t => new Date(t.date) >= start);
+    }
     
-    // Get total count for pagination
-    const total = await Transaction.countDocuments(filter);
-    
+    if (endDate) {
+      const end = new Date(endDate);
+      filteredTransactions = filteredTransactions.filter(t => new Date(t.date) <= end);
+    }
+
+    // Paginate results
+    const totalItems = filteredTransactions.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
+
     return NextResponse.json({
-      transactions,
+      transactions: paginatedTransactions,
       pagination: {
-        total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit)
+        totalItems,
+        totalPages,
+        currentPage: page,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
       }
     });
   } catch (error) {
@@ -86,26 +100,18 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    await connectToDatabase();
+    const transaction = await request.json();
     
-    const data = await request.json();
+    // In a real app, you would save to database here
     
-    if (!data.amount || !data.description || !data.category || !data.type) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-    
-    // If a date string is provided, parse it, otherwise use current date
-    if (data.date) {
-      data.date = new Date(data.date);
-    }
-    
-    const transaction = new Transaction(data);
-    await transaction.save();
-    
-    return NextResponse.json({ success: true, transaction }, { status: 201 });
+    return NextResponse.json({ 
+      message: 'Transaction created successfully',
+      transaction: {
+        ...transaction,
+        _id: Date.now().toString(), // generate mock ID
+        date: transaction.date || new Date()
+      }
+    }, { status: 201 });
   } catch (error) {
     console.error('Error creating transaction:', error);
     return NextResponse.json(

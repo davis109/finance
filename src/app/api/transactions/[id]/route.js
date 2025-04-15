@@ -1,9 +1,4 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '../../../../lib/mongodb';
-import Transaction from '../../../../lib/models/Transaction';
-
-// Force dynamic rendering - this prevents static generation errors
-export const dynamic = 'force-dynamic';
 
 // Mock transactions data (same as in main transactions route)
 const transactions = [
@@ -47,10 +42,8 @@ const transactions = [
 
 export async function GET(request, { params }) {
   try {
-    await connectToDatabase();
     const id = params.id;
-    
-    const transaction = await Transaction.findById(id);
+    const transaction = transactions.find(t => t._id === id);
 
     if (!transaction) {
       return NextResponse.json(
@@ -71,26 +64,18 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
-    await connectToDatabase();
     const id = params.id;
     const updatedData = await request.json();
     
-    const transaction = await Transaction.findByIdAndUpdate(
-      id,
-      updatedData,
-      { new: true }
-    );
-    
-    if (!transaction) {
-      return NextResponse.json(
-        { error: 'Transaction not found' },
-        { status: 404 }
-      );
-    }
+    // In a real app, you would update in database here
+    // Simulate successful update
     
     return NextResponse.json({ 
       message: 'Transaction updated successfully',
-      transaction
+      transaction: {
+        ...updatedData,
+        _id: id
+      }
     });
   } catch (error) {
     console.error('Error updating transaction:', error);
@@ -103,17 +88,10 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    await connectToDatabase();
     const id = params.id;
     
-    const transaction = await Transaction.findByIdAndDelete(id);
-    
-    if (!transaction) {
-      return NextResponse.json(
-        { error: 'Transaction not found' },
-        { status: 404 }
-      );
-    }
+    // In a real app, you would delete from database here
+    // Simulate successful deletion
     
     return NextResponse.json({ 
       message: 'Transaction deleted successfully',

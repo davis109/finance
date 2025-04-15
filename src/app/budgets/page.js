@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Layout from '../../components/Layout';
-import BudgetDetail from '../../components/BudgetDetail';
 import { gsap } from 'gsap';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -14,8 +13,6 @@ export default function Budgets() {
   const [budgets, setBudgets] = useState([]);
   const [categories, setCategories] = useState([]);
   const [statistics, setStatistics] = useState({});
-  const [transactions, setTransactions] = useState([]);
-  const [selectedBudget, setSelectedBudget] = useState(null);
   
   // Month and year selection
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -126,27 +123,6 @@ export default function Budgets() {
     }
     
     fetchStatistics();
-  }, [selectedMonth, selectedYear]);
-  
-  // Fetch transactions for the selected month and year
-  useEffect(() => {
-    async function fetchTransactions() {
-      try {
-        const response = await fetch(`/api/transactions?month=${selectedMonth}&year=${selectedYear}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch transactions');
-        }
-        
-        const data = await response.json();
-        setTransactions(data.transactions || []);
-      } catch (err) {
-        console.error('Error fetching transactions:', err);
-        // Non-blocking error
-      }
-    }
-    
-    fetchTransactions();
   }, [selectedMonth, selectedYear]);
   
   // GSAP animations - only run when data is loaded and components are mounted
@@ -316,15 +292,21 @@ export default function Budgets() {
     }
   };
   
-  // Handle viewing budget details
-  const handleViewBudgetDetail = (budget) => {
-    setSelectedBudget(budget);
-  };
-  
-  // Handle closing budget detail modal
-  const handleCloseBudgetDetail = () => {
-    setSelectedBudget(null);
-  };
+  // Month selector options
+  const months = [
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' }
+  ];
   
   // Determine if chart data is ready to display
   const chartData = getChartData();
@@ -333,229 +315,168 @@ export default function Budgets() {
   
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <h1 ref={titleRef} className="text-3xl font-bold mb-6 text-center">
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
+        <h1 ref={titleRef} className="text-2xl font-bold mb-4 md:mb-0">
           Budget Management
         </h1>
         
-        {/* Month and year selection */}
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
-          <div className="flex flex-wrap justify-center gap-4">
-            <div className="w-full sm:w-auto">
-              <label className="block text-sm font-medium mb-1">Month</label>
-              <select 
-                value={selectedMonth} 
-                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="w-full p-2 border rounded-md"
-              >
-                {Array.from({ length: 12 }, (_, i) => (
-                  <option key={`month-${i+1}`} value={i+1}>
-                    {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="w-full sm:w-auto">
-              <label className="block text-sm font-medium mb-1">Year</label>
-              <select 
-                value={selectedYear} 
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="w-full p-2 border rounded-md"
-              >
-                {Array.from({ length: 5 }, (_, i) => (
-                  <option key={`year-${new Date().getFullYear() - i}`} value={new Date().getFullYear() - i}>
-                    {new Date().getFullYear() - i}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+        <div className="flex space-x-4">
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            className="input max-w-[150px]"
+            disabled={budgetsLoading}
+          >
+            {months.map((month) => (
+              <option key={month.value} value={month.value}>
+                {month.label}
+              </option>
+            ))}
+          </select>
+          
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="input max-w-[120px]"
+            disabled={budgetsLoading}
+          >
+            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
         </div>
+      </div>
+      
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+          <p>{error}</p>
+        </div>
+      )}
+      
+      {/* Budget form */}
+      <div ref={formRef} className="card bg-white dark:bg-gray-800 mb-6">
+        <h2 className="text-lg font-medium mb-4">Set Budget</h2>
         
-        {/* Error message */}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-            <p>{error}</p>
+        <form onSubmit={handleSubmit} className="flex flex-col md:flex-row items-end gap-4">
+          <div className="flex-grow">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Category
+            </label>
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              className="input w-full"
+              required
+              disabled={budgetsLoading}
+            >
+              <option value="">Select Category</option>
+              {categories.map((category) => (
+                <option key={category.name} value={category.name}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="w-full md:w-1/3">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Budget Amount
+            </label>
+            <input
+              type="number"
+              name="amount"
+              value={formData.amount}
+              onChange={handleChange}
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              className="input w-full"
+              required
+              disabled={budgetsLoading}
+            />
+          </div>
+          
+          <button
+            type="submit"
+            className="btn btn-primary h-[42px] mt-6"
+            disabled={budgetsLoading}
+          >
+            {budgetsLoading ? 'Saving...' : 'Set Budget'}
+          </button>
+        </form>
+      </div>
+      
+      {/* Budget comparison chart */}
+      <div ref={chartRef} className="card bg-white dark:bg-gray-800 mb-6">
+        <h2 className="text-lg font-medium mb-4">Budget vs Actual Spending</h2>
+        
+        {showLoader ? (
+          <div className="flex justify-center py-10">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        ) : budgets.length > 0 ? (
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="category" />
+                <YAxis />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Legend />
+                <Bar dataKey="budget" name="Budget" fill="#3498db" />
+                <Bar dataKey="actual" name="Actual" fill="#e74c3c" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="text-center py-10 text-gray-500 dark:text-gray-400">
+            <p>No budgets set for this month. Add your first budget above!</p>
           </div>
         )}
-        
-        {/* Create Budget Form */}
-        <div ref={formRef} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Create New Budget</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Category</label>
-                <select 
-                  name="category" 
-                  value={formData.category} 
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-md"
-                  required
-                >
-                  <option value="">Select a category</option>
-                  {categories.map(category => (
-                    <option key={category._id} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Budget Amount</label>
-                <input 
-                  type="number" 
-                  name="amount" 
-                  value={formData.amount} 
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-md"
-                  min="0"
-                  step="0.01"
-                  required
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="flex items-end">
-                <button 
-                  type="submit" 
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                  disabled={budgetsLoading}
-                >
-                  {budgetsLoading ? 'Saving...' : 'Save Budget'}
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
-        
-        {/* Budget Comparison Chart */}
-        {!loading && (
-          <div ref={chartRef} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Budget vs Actual Spending</h2>
-            {budgets.length > 0 ? (
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={getChartData()}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="category" 
-                      angle={-45} 
-                      textAnchor="end"
-                      height={70}
-                      interval={0}
-                    />
-                    <YAxis tickFormatter={(value) => `$${value}`} />
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                    <Legend />
-                    <Bar dataKey="budget" name="Budgeted" fill="#4299e1" />
-                    <Bar dataKey="actual" name="Actual" fill="#f56565" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                No budgets created for this month. Create your first budget above.
-              </p>
-            )}
-          </div>
-        )}
-        
-        {/* Budget Status Cards */}
-        {!loading && (
-          <div ref={cardsRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-            {budgets.map(budget => {
-              const status = calculateBudgetStatus(budget);
-              const remainingAmount = budget.allocated - Math.abs(budget.spent);
+      </div>
+      
+      {/* Budget status cards */}
+      <div ref={cardsRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {budgets.map((budget) => {
+          const { status, percentage, message } = calculateBudgetStatus(budget);
+          const statusColors = {
+            success: 'bg-secondary',
+            warning: 'bg-warning',
+            danger: 'bg-danger',
+            neutral: 'bg-gray-400'
+          };
+          
+          return (
+            <div key={budget._id} className="card bg-white dark:bg-gray-800">
+              <h3 className="text-lg font-medium mb-2">{budget.category}</h3>
+              <p className="text-2xl font-bold mb-4">{formatCurrency(budget.amount)}</p>
               
-              return (
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
                 <div 
-                  key={budget._id} 
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-shadow"
-                  onClick={() => handleViewBudgetDetail(budget)}
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-lg font-semibold">{budget.category}</h3>
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      status === 'danger' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                      status === 'warning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                    }`}>
-                      {status === 'danger' ? 'Overspent' : 
-                       status === 'warning' ? 'Close to limit' : 'On track'}
-                    </span>
-                  </div>
-                  
-                  <div className="mb-3">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Budget</span>
-                      <span className="font-semibold">{formatCurrency(budget.allocated)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Spent</span>
-                      <span className="font-semibold text-red-500 dark:text-red-400">
-                        {formatCurrency(Math.abs(budget.spent))}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Remaining</span>
-                      <span className={`font-semibold ${
-                        remainingAmount < 0 ? 'text-red-500 dark:text-red-400' : 'text-green-500 dark:text-green-400'
-                      }`}>
-                        {formatCurrency(remainingAmount)}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                    <div 
-                      className={`h-2.5 rounded-full ${
-                        status === 'danger' ? 'bg-red-500' :
-                        status === 'warning' ? 'bg-yellow-500' :
-                        'bg-green-500'
-                      }`}
-                      style={{ 
-                        width: `${Math.min(
-                          Math.abs(budget.spent) / budget.allocated * 100, 
-                          100
-                        )}%` 
-                      }}
-                    ></div>
-                  </div>
-                  
-                  <div className="text-center mt-4">
-                    <button 
-                      className="text-sm text-blue-500 hover:text-blue-700"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewBudgetDetail(budget);
-                      }}
-                    >
-                      View Details
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        
-        {loading && (
-          <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        )}
-        
-        {/* Budget Detail Modal */}
-        {selectedBudget && (
-          <BudgetDetail 
-            budget={selectedBudget} 
-            transactions={transactions}
-            onClose={handleCloseBudgetDetail}
-          />
-        )}
+                  className={`h-2.5 rounded-full ${statusColors[status]}`}
+                  style={{ width: `${percentage}%` }}
+                ></div>
+              </div>
+              
+              <div className="flex justify-between text-sm">
+                <span>{percentage}% used</span>
+                <span className={`${
+                  status === 'danger' ? 'text-danger' : 
+                  status === 'warning' ? 'text-warning' : 
+                  'text-secondary'
+                }`}>
+                  {message}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </Layout>
   );
