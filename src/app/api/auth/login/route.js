@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { loginUser } from '../../../../lib/auth';
 import { cookies } from 'next/headers';
 
+// Force dynamic rendering - this prevents static generation errors
+export const dynamic = 'force-dynamic';
+
 export async function POST(request) {
   try {
     const { usernameOrEmail, password } = await request.json();

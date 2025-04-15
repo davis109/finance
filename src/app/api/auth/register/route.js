@@ -31,6 +31,9 @@ try {
   User = mongoose.model('User', userSchema);
 }
 
+// Force dynamic rendering - this prevents static generation errors
+export const dynamic = 'force-dynamic';
+
 export async function POST(request) {
   try {
     const { username, email, password } = await request.json();

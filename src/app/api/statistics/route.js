@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+// Force dynamic rendering - this prevents static generation errors
+export const dynamic = 'force-dynamic';
+
 export async function GET(request) {
   try {
     // Extract query parameters

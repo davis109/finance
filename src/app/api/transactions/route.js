@@ -3,6 +3,9 @@ import { connectToDatabase } from '../../../lib/mongodb';
 import mongoose from 'mongoose';
 import Transaction from '../../../lib/models/Transaction';
 
+// Force dynamic rendering - this prevents static generation errors
+export const dynamic = 'force-dynamic';
+
 export async function GET(request) {
   try {
     await connectToDatabase();

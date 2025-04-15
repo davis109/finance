@@ -1,4 +1,9 @@
 import { NextResponse } from 'next/server';
+import { connectToDatabase } from '../../../lib/mongodb';
+import Budget from '../../../lib/models/Budget';
+
+// Force dynamic rendering - this prevents static generation errors
+export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {

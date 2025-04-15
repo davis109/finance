@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken, getUserById } from '../../../../lib/auth';
 
+// Force dynamic rendering - this prevents static generation errors
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // Get auth token from cookies
