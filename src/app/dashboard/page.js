@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Layout from '../../components/Layout';
-import BackgroundAnimation from '../../components/BackgroundAnimation';
+import Layout from '../components/Layout';
+import BackgroundAnimation from '../components/BackgroundAnimation';
 import { gsap } from 'gsap';
 import { 
   BarChart, Bar, PieChart, Pie, LineChart, Line, 
