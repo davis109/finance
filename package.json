@@ -21,7 +21,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "gsap": "^3.12.2",
+    "jsonwebtoken": "^9.0.2",
     "mongodb": "^5.8.1",
     "mongoose": "^7.5.3",
     "next": "14.0.0",
